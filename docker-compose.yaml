@@ -1,0 +1,12 @@
+services:
+  app:
+    container_name: gain_invariance_simulation
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - ${PORT}:${PORT}
+    command: /bin/bash
+    tty: true
+    stdin_open: true
