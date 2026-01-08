@@ -52,29 +52,30 @@ class SineWaveDataModule(L.LightningDataModule):
     val_data: torch.utils.data.Dataset = attrs.field(init=False)
     test_data: torch.utils.data.Dataset = attrs.field(init=False)
 
+    @property
+    def dataloader_params(self) -> Dict[str, Any]:
+        return dict(
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            persistent_workers=self.persist_workers,
+        )
+
     def setup(self):
         data = SineWaveDataset(N=self.N, sample_rate=self.sample_rate, duration_seconds=self.duration_seconds)
         self.train_data, self.val_data, self.test_data = torch.utils.data.random_split(data, (1 - self.val_prop - self.test_prop, self.val_prop, self.test_prop))
         return self
 
-    def train_dataloader(self, batch_size: int | None = None, **kwargs: Any) -> torch.utils.data.DataLoader:
+    def train_dataloader(self, **kwargs: Any) -> torch.utils.data.DataLoader:
         return self._build_dataloader(self.train_data, batch_size=self.train_batch_size, shuffle=True)
 
-    def val_dataloader(self, batch_size: int | None = None, **kwargs: Any) -> torch.utils.data.DataLoader:
+    def val_dataloader(self, **kwargs: Any) -> torch.utils.data.DataLoader:
         return self._build_dataloader(self.val_data, batch_size=self.eval_batch_size, shuffle=False)
 
-    def test_dataloader(self, batch_size: int | None = None, **kwargs: Any) -> torch.utils.data.DataLoader:
+    def test_dataloader(self, **kwargs: Any) -> torch.utils.data.DataLoader:
         return self._build_dataloader(self.test_data, batch_size=self.eval_batch_size, shuffle=False)
 
-    def predict_dataloader(self, batch_size: int | None = None, **kwargs: Any) -> torch.utils.data.DataLoader:
-        batch_size = batch_size or self.eval_batch_size or len(self.test_data)
+    def predict_dataloader(self, **kwargs: Any) -> torch.utils.data.DataLoader:
         return self._build_dataloader(self.test_data, batch_size=self.eval_batch_size, shuffle=False)
 
     def _build_dataloader(self, dataset: torch.utils.data.Dataset, batch_size: int | None = None, **kwargs: Any) -> torch.utils.data.DataLoader:
-        return torch.utils.data.DataLoader(
-            dataset,
-            batch_size=batch_size or len(dataset),
-            collate_fn=self.batch_converter,
-            **self.dataloader_params,
-            **kwargs
-        )
+        return torch.utils.data.DataLoader(dataset, batch_size=batch_size or len(dataset), **self.dataloader_params, **kwargs)
