@@ -9,7 +9,8 @@ class SineWaveDataset(torch.utils.data.Dataset):
     N: int = attrs.field(default=4096)
     sample_rate: int = attrs.field(default=48_000)
     duration_seconds: float = attrs.field(default=1.536)
-    min_freq: int = attrs.field(default=100)
+    min_freq: int = attrs.field(default=150)
+    max_freq: int = attrs.field(default=15_000)
 
     transforms: Callable | None = attrs.field(default=None)
     x: torch.Tensor = attrs.field(init=False)
@@ -23,9 +24,10 @@ class SineWaveDataset(torch.utils.data.Dataset):
         return self.transforms(self.x[idx])
 
     def __attrs_post_init__(self):
+        assert self.max_freq <= self.sample_rate // 2
         A = 1
-        f = torch.linspace(self.min_freq, self.sample_rate // 2, self.N)
-        t = self.duration_seconds * self.sample_rate
+        f = torch.linspace(self.min_freq, self.max_freq, self.N, dtype=torch.float32).unsqueeze(1)
+        t = torch.linspace(0.0, self.duration_seconds, int(self.duration_seconds * self.sample_rate) - 1, dtype=torch.float32).repeat(self.N, 1)
         self.x = A * torch.sin(2 * torch.pi * f * t)
 
 @attrs.define()
